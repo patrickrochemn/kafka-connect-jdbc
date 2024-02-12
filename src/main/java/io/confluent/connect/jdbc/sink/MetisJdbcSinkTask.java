@@ -1,11 +1,16 @@
+package io.confluent.connect.jdbc.sink;
+
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.DataException;
-import io.confluent.connect.jdbc.sink.JdbcSinkTask;
 import java.util.Collection;
 import java.util.ArrayList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MetisJdbcSinkTask extends JdbcSinkTask {
+
+    private static final Logger logger = LoggerFactory.getLogger(MetisJdbcSinkTask.class);
 
     @Override
     public void put(Collection<SinkRecord> records) {
@@ -25,7 +30,6 @@ public class MetisJdbcSinkTask extends JdbcSinkTask {
                     modifiedRecords.add(modifiedRecord);
                 } else {
                     // Handle records without a table field or with an empty table name
-                    // For example, log a warning and skip the record or add it to a default table
                     logger.warn("Record does not contain 'table' field or it is empty. Skipping record: {}", record);
                 }
             } catch (Exception e) {
@@ -39,5 +43,6 @@ public class MetisJdbcSinkTask extends JdbcSinkTask {
         super.put(modifiedRecords);
     }
 
-    // Override other necessary methods and add custom logic as needed
+    // Implement other methods required by the JdbcSinkTask if necessary
+    // You might need to override methods like start, stop, version, etc., depending on your specific requirements
 }

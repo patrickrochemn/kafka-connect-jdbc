@@ -601,6 +601,22 @@
 
     <profiles>
         <profile>
+            <id>no-checkstyle</id>
+            <build>
+                <pluginManagement>
+                    <plugins>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-checkstyle-plugin</artifactId>
+                            <configuration>
+                                <skip>true</skip>
+                            </configuration>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
+            </build>
+        </profile>
+        <profile>
             <id>rpm</id>
             <build>
             <plugins>
