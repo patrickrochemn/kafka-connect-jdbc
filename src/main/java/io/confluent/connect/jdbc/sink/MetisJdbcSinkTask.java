@@ -4,6 +4,7 @@ import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.DataException;
 import java.util.Collection;
+import java.util.Map;
 import java.util.ArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,16 +19,28 @@ public class MetisJdbcSinkTask extends JdbcSinkTask {
 
         for (SinkRecord record : records) {
             try {
-                // Assuming the record value is a Struct and the table name is stored in a field named "table"
-                Struct valueStruct = (Struct) record.value();
-                String tableName = valueStruct.getString("table");
+                String tableName = null;
+                // Check if the record value is a Struct
+                if (record.value() instanceof Struct) {
+                    Struct valueStruct = (Struct) record.value();
+                    tableName = valueStruct.getString("table");
+                }
+                // Check if the record value is a Map
+                else if (record.value() instanceof Map) {
+                    Map<?, ?> valueMap = (Map<?, ?>) record.value();
+                    Object tableObj = valueMap.get("table");
+                    if (tableObj instanceof String) {
+                        tableName = (String) tableObj;
+                    }
+                }
 
                 if (tableName != null && !tableName.isEmpty()) {
+                    logger.debug("Routing record to table: {}", tableName);
                     // Modify the record in a way that routes it to the correct table
                     // This example sets the record's topic to the table name
                     SinkRecord modifiedRecord = new SinkRecord(tableName, record.kafkaPartition(),
-                            record.keySchema(), record.key(), record.valueSchema(), record.value(), record.timestamp());
-                    modifiedRecords.add(modifiedRecord);
+                        record.keySchema(), record.key(), record.valueSchema(), record.value(), record.timestamp());
+                modifiedRecords.add(modifiedRecord);
                 } else {
                     // Handle records without a table field or with an empty table name
                     logger.warn("Record does not contain 'table' field or it is empty. Skipping record: {}", record);

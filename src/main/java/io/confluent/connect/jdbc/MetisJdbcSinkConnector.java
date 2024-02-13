@@ -58,10 +58,12 @@ public class MetisJdbcSinkConnector extends JdbcSinkConnector {
   @Override
   public void start(Map<String, String> props) {
     configProps = props;
+    log.info("Starting MetisJdbcSinkConnector with configuration: {}", configProps);
   }
 
   @Override
   public void stop() {
+    log.info("Stopping MetisJdbcSinkConnector.");
   }
 
   @Override
