@@ -29,8 +29,9 @@ import io.confluent.connect.jdbc.util.CachedConnectionProvider;
 import io.confluent.connect.jdbc.util.TableId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.apache.kafka.connect.data.Struct;
 
-public class MetisJdbcDbWriter {
+public class MetisJdbcDbWriter extends JdbcDbWriter{
   private static final Logger log = LoggerFactory.getLogger(MetisJdbcDbWriter.class);
 
   private final JdbcSinkConfig config;
@@ -38,7 +39,8 @@ public class MetisJdbcDbWriter {
   private final DbStructure dbStructure;
   final CachedConnectionProvider cachedConnectionProvider;
 
-  MetisJdbcDbWriter(final JdbcSinkConfig config, DatabaseDialect dbDialect, DbStructure dbStructure) {
+  public MetisJdbcDbWriter(final JdbcSinkConfig config, DatabaseDialect dbDialect, DbStructure dbStructure) {
+    super(config, dbDialect, dbStructure);
     this.config = config;
     this.dbDialect = dbDialect;
     this.dbStructure = dbStructure;
@@ -63,20 +65,20 @@ public class MetisJdbcDbWriter {
       throws SQLException, TableAlterOrCreateException {
     final Connection connection = cachedConnectionProvider.getConnection();
     try {
-      final Map<TableId, BufferedRecords> bufferByTable = new HashMap<>();
+      final Map<String, BufferedRecords> bufferByTable = new HashMap<>();
       for (SinkRecord record : records) {
-        final TableId tableId = destinationTable(record.topic());
-        BufferedRecords buffer = bufferByTable.get(tableId);
+        // Extract the table name from record
+        String tableName = extractTableName(record);
+        // buffer by tableName instead of tableId
+        BufferedRecords buffer = bufferByTable.get(tableName);
         if (buffer == null) {
+          TableId tableId = dbDialect.parseTableIdentifier(tableName);
           buffer = new BufferedRecords(config, tableId, dbDialect, dbStructure, connection);
-          bufferByTable.put(tableId, buffer);
+          bufferByTable.put(tableName, buffer);
         }
         buffer.add(record);
       }
-      for (Map.Entry<TableId, BufferedRecords> entry : bufferByTable.entrySet()) {
-        TableId tableId = entry.getKey();
-        BufferedRecords buffer = entry.getValue();
-        log.debug("Flushing records in JDBC Writer for table ID: {}", tableId);
+      for (BufferedRecords buffer : bufferByTable.values()) {
         buffer.flush();
         buffer.close();
       }
@@ -89,6 +91,20 @@ public class MetisJdbcDbWriter {
       } finally {
         throw e;
       }
+    }
+  }
+
+  private String extractTableName(SinkRecord record) {
+    // Assuming the record value is a Struct and the table name is stored in a field named "table"
+    if (record.value() instanceof Struct) {
+      Struct valueStruct = (Struct) record.value();
+      // Log the extracted table name
+      log.info("Extracted table name: " + valueStruct.getString("table"));
+      return valueStruct.getString("table");
+    } else {
+      // if it isn't a Struct, throw an exception and say what the class is
+      log.error("Record value must be a Struct. Was " + record.value().getClass());
+      throw new ConnectException("Record value must be a Struct. Was " + record.value().getClass());
     }
   }
 
