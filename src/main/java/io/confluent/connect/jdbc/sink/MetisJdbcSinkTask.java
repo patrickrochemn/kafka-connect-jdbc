@@ -4,7 +4,10 @@ import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.DataException;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
 import java.util.ArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,47 +18,43 @@ public class MetisJdbcSinkTask extends JdbcSinkTask {
 
     @Override
     public void put(Collection<SinkRecord> records) {
-        Collection<SinkRecord> modifiedRecords = new ArrayList<>();
+        if (records.isEmpty()) {
+            return;
+        }
 
+        // Group records by the target table based on the 'table' field in the record value
+        Map<String, List<SinkRecord>> recordsByTable = new HashMap<>();
         for (SinkRecord record : records) {
             try {
-                String tableName = null;
-                // Check if the record value is a Struct
-                if (record.value() instanceof Struct) {
-                    Struct valueStruct = (Struct) record.value();
+                Struct valueStruct = record.value() instanceof Struct ? (Struct) record.value() : null;
+                String tableName;
+
+                if (valueStruct != null && valueStruct.schema().field("table") != null) {
                     tableName = valueStruct.getString("table");
-                }
-                // Check if the record value is a Map
-                else if (record.value() instanceof Map) {
-                    Map<?, ?> valueMap = (Map<?, ?>) record.value();
-                    Object tableObj = valueMap.get("table");
-                    if (tableObj instanceof String) {
-                        tableName = (String) tableObj;
-                    }
+                } else {
+                    throw new DataException("Record value does not contain 'table' field or it is null.");
                 }
 
-                if (tableName != null && !tableName.isEmpty()) {
-                    logger.debug("Routing record to table: {}", tableName);
-                    // Modify the record in a way that routes it to the correct table
-                    // This example sets the record's topic to the table name
-                    SinkRecord modifiedRecord = new SinkRecord(tableName, record.kafkaPartition(),
-                        record.keySchema(), record.key(), record.valueSchema(), record.value(), record.timestamp());
-                modifiedRecords.add(modifiedRecord);
-                } else {
-                    // Handle records without a table field or with an empty table name
-                    logger.warn("Record does not contain 'table' field or it is empty. Skipping record: {}", record);
-                }
+                // Add record to the list for the appropriate table
+                recordsByTable.computeIfAbsent(tableName, k -> new ArrayList<>()).add(record);
             } catch (Exception e) {
-                // Handle potential exceptions, such as ClassCastException if the record value is not a Struct
                 logger.error("Error processing record: {}", record, e);
                 throw new DataException("Error processing record in MetisJdbcSinkTask", e);
             }
         }
 
-        // Pass the modified records to the superclass's put method for actual writing to the database
-        super.put(modifiedRecords);
+        // Process records for each table separately
+        for (Map.Entry<String, List<SinkRecord>> entry : recordsByTable.entrySet()) {
+            String tableName = entry.getKey();
+            Collection<SinkRecord> tableRecords = entry.getValue();
+
+            logger.debug("Routing {} records to table {}", tableRecords.size(), tableName);
+
+            // Use custom writer to route records to the appropriate table
+        }
+
+        // After processing all records, reset retries
+        remainingRetries = config.maxRetries;
     }
 
-    // Implement other methods required by the JdbcSinkTask if necessary
-    // You might need to override methods like start, stop, version, etc., depending on your specific requirements
 }

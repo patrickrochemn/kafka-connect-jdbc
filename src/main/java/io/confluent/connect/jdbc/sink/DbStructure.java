@@ -50,7 +50,7 @@ public class DbStructure {
    *
    * @param config the connector configuration
    * @param connection the database connection handle
-   * @param tableId the table ID
+   * @param tableName the name of the table to create or amend
    * @param fieldsMetadata the fields metadata
    * @return whether a DDL operation was performed
    * @throws SQLException if a DDL operation was deemed necessary but failed
@@ -58,9 +58,11 @@ public class DbStructure {
   public boolean createOrAmendIfNecessary(
       final JdbcSinkConfig config,
       final Connection connection,
-      final TableId tableId,
+      final String tableName, // New parameter for dynamic table name
       final FieldsMetadata fieldsMetadata
   ) throws SQLException, TableAlterOrCreateException {
+    // Construct TableId dynamically based on the tableName
+    TableId tableId = new TableId(null, null, tableName);
     if (tableDefns.get(connection, tableId) == null) {
       // Table does not yet exist, so attempt to create it ...
       try {
@@ -89,14 +91,16 @@ public class DbStructure {
    *
    * @param connection the connection that may be used to fetch the table definition if not
    *                   already known; may not be null
-   * @param tableId    the ID of the table; may not be null
+   * @param tableName the name of the table to get the definition for
    * @return the table definition; or null if the table does not exist
    * @throws SQLException if there is an error getting the definition from the database
    */
   public TableDefinition tableDefinition(
       Connection connection,
-      TableId tableId
+      String tableName // New parameter for dynamic table name
   ) throws SQLException {
+    // Construct TableId dynamically based on the tableName
+    TableId tableId = new TableId(null, null, tableName);
     TableDefinition defn = tableDefns.get(connection, tableId);
     if (defn != null) {
       return defn;
@@ -140,14 +144,6 @@ public class DbStructure {
     //   We also don't check if the data types for columns that do line-up are compatible.
 
     final TableDefinition tableDefn = tableDefns.get(connection, tableId);
-
-    // FIXME: SQLite JDBC driver seems to not always return the PK column names?
-    //    if (!tableMetadata.getPrimaryKeyColumnNames().equals(fieldsMetadata.keyFieldNames)) {
-    //      throw new ConnectException(String.format(
-    //          "Table %s has different primary key columns - database (%s), desired (%s)",
-    //          tableName, tableMetadata.getPrimaryKeyColumnNames(), fieldsMetadata.keyFieldNames
-    //      ));
-    //    }
 
     final Set<SinkRecordField> missingFields = missingFields(
         fieldsMetadata.allFields.values(),
