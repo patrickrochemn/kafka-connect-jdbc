@@ -81,7 +81,7 @@ public class DbStructureTest {
         Collections.singleton(sinkRecordField.name()),
         Collections.singletonMap(sinkRecordField.name(), sinkRecordField));
 
-    structure.createOrAmendIfNecessary(config, connection, tableId, fieldsMetadata);
+    structure.createOrAmendIfNecessary(config, connection, tableId.tableName(), fieldsMetadata);
   }
 
   @Test (expected = TableAlterOrCreateException.class)

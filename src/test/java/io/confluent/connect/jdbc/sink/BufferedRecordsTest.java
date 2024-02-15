@@ -47,6 +47,7 @@ import io.confluent.connect.jdbc.dialect.DatabaseDialect;
 import io.confluent.connect.jdbc.dialect.DatabaseDialects;
 import io.confluent.connect.jdbc.dialect.SqliteDatabaseDialect;
 import io.confluent.connect.jdbc.sink.metadata.FieldsMetadata;
+import io.confluent.connect.jdbc.source.EmbeddedDerby.TableName;
 import io.confluent.connect.jdbc.util.TableId;
 
 import static org.junit.Assert.assertEquals;
@@ -473,11 +474,7 @@ public class BufferedRecordsTest {
 
 
     final DbStructure dbStructureMock = mock(DbStructure.class);
-    when(dbStructureMock.createOrAmendIfNecessary(Matchers.any(JdbcSinkConfig.class),
-                                                  Matchers.any(Connection.class),
-                                                  Matchers.any(TableId.class),
-                                                  Matchers.any(FieldsMetadata.class)))
-        .thenReturn(true);
+    when(dbStructureMock.createOrAmendIfNecessary(config, null, url, null)).thenReturn(true);
     when(dbStructureMock.tableDefinition(any(), any())).thenReturn(tabDefMock);
 
     PreparedStatement preparedStatementMock = mock(PreparedStatement.class);
@@ -513,11 +510,7 @@ public class BufferedRecordsTest {
     final DatabaseDialect dbDialect = DatabaseDialects.findBestFor(url, config);
     assertTrue(dbDialect instanceof SqliteDatabaseDialect);
     final DbStructure dbStructureMock = mock(DbStructure.class);
-    when(dbStructureMock.createOrAmendIfNecessary(Matchers.any(JdbcSinkConfig.class),
-                                                  Matchers.any(Connection.class),
-                                                  Matchers.any(TableId.class),
-                                                  Matchers.any(FieldsMetadata.class)))
-        .thenReturn(true);
+    when(dbStructureMock.createOrAmendIfNecessary(config, null, url, null)).thenReturn(true);
 
     final Connection connectionMock = mock(Connection.class);
     final TableId tableId = new TableId(null, null, "dummy");

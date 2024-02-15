@@ -131,6 +131,7 @@ public class MetisJdbcDbWriterTest {
     props.put("insert.mode", "upsert");
     props.put("pk.mode", "record_key");
     props.put("pk.fields", "id"); // assigned name for the primitive key
+    props.put("table", "CompleteRoute");
 
     MetisJdbcDbWriter writer = newWriterWithMockConnection(props, mockConnection);
 
@@ -179,6 +180,7 @@ public class MetisJdbcDbWriterTest {
     props.put("auto.evolve", "true");
     props.put("pk.mode", "record_key");
     props.put("pk.fields", "id"); // assigned name for the primitive key
+    props.put("table", "CompleteRoute");
 
     writer = newWriter(props);
 
@@ -268,6 +270,7 @@ public class MetisJdbcDbWriterTest {
     props.put("pk.mode", pkMode.toString());
     props.put("pk.fields", pkFields);
     props.put("insert.mode", insertMode.toString());
+    props.put("table", "CompleteRoute");
 
     writer = newWriter(props);
 
@@ -312,6 +315,7 @@ public class MetisJdbcDbWriterTest {
     props.put("delete.enabled", "true");
     props.put("pk.mode", "record_key");
     props.put("insert.mode", "upsert");
+    props.put("table", "CompleteRoute");
 
     writer = newWriter(props);
 
@@ -359,6 +363,7 @@ public class MetisJdbcDbWriterTest {
     props.put("delete.enabled", "true");
     props.put("pk.mode", "record_key");
     props.put("insert.mode", "upsert");
+    props.put("table", "CompleteRoute");
 
     writer = newWriter(props);
 
@@ -404,6 +409,7 @@ public class MetisJdbcDbWriterTest {
     props.put("delete.enabled", "true");
     props.put("pk.mode", "record_key");
     props.put("insert.mode", "upsert");
+    props.put("table", "CompleteRoute");
 
     writer = newWriter(props);
 
