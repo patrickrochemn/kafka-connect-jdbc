@@ -122,7 +122,7 @@ public class BufferedRecords {
       dbStructure.createOrAmendIfNecessary(
           config,
           connection,
-          tableId,
+          tableId.tableName(),
           fieldsMetadata
       );
       final String insertSql = getInsertSql();
@@ -141,7 +141,7 @@ public class BufferedRecords {
           config.pkMode,
           schemaPair,
           fieldsMetadata,
-          dbStructure.tableDefinition(connection, tableId),
+          dbStructure.tableDefinition(connection, tableId.tableName()),
           config.insertMode
       );
       if (config.deleteEnabled && nonNull(deleteSql)) {
@@ -151,7 +151,7 @@ public class BufferedRecords {
             config.pkMode,
             schemaPair,
             fieldsMetadata,
-            dbStructure.tableDefinition(connection, tableId),
+            dbStructure.tableDefinition(connection, tableId.tableName()),
             config.insertMode
         );
       }
@@ -237,7 +237,7 @@ public class BufferedRecords {
             tableId,
             asColumns(fieldsMetadata.keyFieldNames),
             asColumns(fieldsMetadata.nonKeyFieldNames),
-            dbStructure.tableDefinition(connection, tableId)
+            dbStructure.tableDefinition(connection, tableId.tableName())
         );
       case UPSERT:
         if (fieldsMetadata.keyFieldNames.isEmpty()) {
@@ -252,7 +252,7 @@ public class BufferedRecords {
               tableId,
               asColumns(fieldsMetadata.keyFieldNames),
               asColumns(fieldsMetadata.nonKeyFieldNames),
-              dbStructure.tableDefinition(connection, tableId)
+              dbStructure.tableDefinition(connection, tableId.tableName())
           );
         } catch (UnsupportedOperationException e) {
           throw new ConnectException(String.format(
@@ -266,7 +266,7 @@ public class BufferedRecords {
             tableId,
             asColumns(fieldsMetadata.keyFieldNames),
             asColumns(fieldsMetadata.nonKeyFieldNames),
-            dbStructure.tableDefinition(connection, tableId)
+            dbStructure.tableDefinition(connection, tableId.tableName())
         );
       default:
         throw new ConnectException("Invalid insert mode");

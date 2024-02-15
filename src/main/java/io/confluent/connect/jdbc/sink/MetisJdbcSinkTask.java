@@ -12,8 +12,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.confluent.connect.jdbc.sink.JdbcSinkTask.log;
-
 import java.sql.SQLException;
 import java.util.ArrayList;
 import org.slf4j.Logger;
