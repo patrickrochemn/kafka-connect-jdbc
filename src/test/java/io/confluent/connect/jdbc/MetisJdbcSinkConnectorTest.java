@@ -31,6 +31,10 @@ import static io.confluent.connect.jdbc.sink.JdbcSinkConfig.PK_MODE;
 import static java.util.Collections.EMPTY_LIST;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.*;
+
+import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.errors.ConnectException;
 
 import org.junit.Test;
@@ -121,8 +125,20 @@ public class MetisJdbcSinkConnectorTest {
     // Verify that the record was routed to "my_dynamic_table"
   }
 
+  // Method to create a mock SinkRecord with a 'table' field in its value
   private SinkRecord createMockRecordWithTableField(String tableName) {
-    return new SinkRecord("my_topic", 0, null, null, null, null, 0);
+      Schema valueSchema = SchemaBuilder.struct().name("record")
+              .field("id", Schema.INT32_SCHEMA)
+              .field("name", Schema.STRING_SCHEMA)
+              .field("table", Schema.STRING_SCHEMA)
+              .build();
+
+      Struct valueStruct = new Struct(valueSchema)
+              .put("id", 1)
+              .put("name", "testName")
+              .put("table", tableName);
+
+      return new SinkRecord("testTopic", 1, Schema.STRING_SCHEMA, "key", valueSchema, valueStruct, 0);
   }
 
   @Test(expected = DataException.class)
@@ -144,8 +160,18 @@ public class MetisJdbcSinkConnectorTest {
       task.put(records);
   }
 
+  // Method to create a mock SinkRecord without a 'table' field
   private SinkRecord createMockRecordWithoutTableField() {
-    return new SinkRecord("my_topic", 0, null, null, null, null, 0);
+    Schema valueSchema = SchemaBuilder.struct().name("record")
+            .field("id", Schema.INT32_SCHEMA)
+            .field("name", Schema.STRING_SCHEMA)
+            .build();
+
+    Struct valueStruct = new Struct(valueSchema)
+            .put("id", 2)
+            .put("name", "testName2");
+
+    return new SinkRecord("testTopic", 1, Schema.STRING_SCHEMA, "key", valueSchema, valueStruct, 0);
   }
 
   @Test(expected = ConnectException.class)
