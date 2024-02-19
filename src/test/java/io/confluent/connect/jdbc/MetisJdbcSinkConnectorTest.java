@@ -113,14 +113,26 @@ public class MetisJdbcSinkConnectorTest {
     connConfig.put("connector.class", "io.confluent.connect.jdbc.MetisJdbcSinkConnector");
     connConfig.put("auto.create", "true");
     connConfig.put("auto.evolve", "true");
+    connConfig.put("delete.enabled", "true");
+    connConfig.put("pk.mode", "record_key");
+    connConfig.put("pk.fields", "id");
+    connConfig.put("topics", "testTopic");
+    connConfig.put("connection.url", "jdbc:postgresql://localhost:5432/testdb");
+    connConfig.put("connection.user", "testuser");
+    connConfig.put("connection.password", "testpassword");
 
     // Mock a SinkRecord with a 'table' field
     SinkRecord mockRecord = createMockRecordWithTableField("my_dynamic_table");
     Collection<SinkRecord> records = Collections.singletonList(mockRecord);
 
     // Initialize connector and task
+    connector.start(connConfig);
+    List<Map<String, String>> taskConfigs = connector.taskConfigs(1); 
+    MetisJdbcSinkTask task = new MetisJdbcSinkTask();
+    task.start(taskConfigs.get(0));
 
     // Invoke the "put" method with the mocked record
+    task.put(records);
 
     // Verify that the record was routed to "my_dynamic_table"
   }
