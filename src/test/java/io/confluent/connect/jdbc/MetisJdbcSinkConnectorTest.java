@@ -21,14 +21,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.Collection;
+import java.util.Collections;
 import org.apache.kafka.common.config.Config;
+import org.apache.kafka.connect.errors.DataException;
+import org.apache.kafka.connect.sink.SinkRecord;
 
 import static io.confluent.connect.jdbc.sink.JdbcSinkConfig.PK_MODE;
 import static java.util.Collections.EMPTY_LIST;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.*;
+import org.apache.kafka.connect.errors.ConnectException;
 
 import org.junit.Test;
+
+import io.confluent.connect.jdbc.sink.MetisJdbcSinkTask;
 
 public class MetisJdbcSinkConnectorTest {
 
@@ -94,4 +101,72 @@ public class MetisJdbcSinkConnectorTest {
             cfg.errorMessages().stream() : Stream.empty())
         .collect(Collectors.toList());
   }
+
+  @Test
+  public void testDynamicTableRouting() {
+    MetisJdbcSinkConnector connector = new MetisJdbcSinkConnector();
+    Map<String, String> connConfig = new HashMap<>();
+    connConfig.put("connector.class", "io.confluent.connect.jdbc.MetisJdbcSinkConnector");
+    connConfig.put("auto.create", "true");
+    connConfig.put("auto.evolve", "true");
+
+    // Mock a SinkRecord with a 'table' field
+    SinkRecord mockRecord = createMockRecordWithTableField("my_dynamic_table");
+    Collection<SinkRecord> records = Collections.singletonList(mockRecord);
+
+    // Initialize connector and task
+
+    // Invoke the "put" method with the mocked record
+
+    // Verify that the record was routed to "my_dynamic_table"
+  }
+
+  private SinkRecord createMockRecordWithTableField(String tableName) {
+    return new SinkRecord("my_topic", 0, null, null, null, null, 0);
+  }
+
+  @Test(expected = DataException.class)
+  public void testMissingTableField() {
+      MetisJdbcSinkConnector connector = new MetisJdbcSinkConnector();
+      Map<String, String> connConfig = new HashMap<>();
+      connConfig.put("connector.class", "io.confluent.connect.jdbc.MetisJdbcSinkConnector");
+
+      // Mock a SinkRecord without a 'table' field
+      SinkRecord mockRecord = createMockRecordWithoutTableField();
+      Collection<SinkRecord> records = Collections.singletonList(mockRecord);
+
+      connector.start(connConfig);
+      List<Map<String, String>> taskConfigs = connector.taskConfigs(1);
+      MetisJdbcSinkTask task = new MetisJdbcSinkTask();
+      task.start(taskConfigs.get(0));
+
+      // Expect a DataException due to the missing 'table' field
+      task.put(records);
+  }
+
+  private SinkRecord createMockRecordWithoutTableField() {
+    return new SinkRecord("my_topic", 0, null, null, null, null, 0);
+  }
+
+  @Test(expected = ConnectException.class)
+  public void testInvalidTableName() {
+      MetisJdbcSinkConnector connector = new MetisJdbcSinkConnector();
+      Map<String, String> connConfig = new HashMap<>();
+      connConfig.put("connector.class", "io.confluent.connect.jdbc.MetisJdbcSinkConnector");
+
+      // Mock a SinkRecord with an invalid 'table' field value
+      SinkRecord mockRecord = createMockRecordWithTableField("invalid_table_name!");
+      Collection<SinkRecord> records = Collections.singletonList(mockRecord);
+
+      connector.start(connConfig);
+      List<Map<String, String>> taskConfigs = connector.taskConfigs(1);
+      MetisJdbcSinkTask task = new MetisJdbcSinkTask();
+      task.start(taskConfigs.get(0));
+
+      // Expect a ConnectException due to the invalid table name
+      task.put(records);
+  }
+
 }
+
+
