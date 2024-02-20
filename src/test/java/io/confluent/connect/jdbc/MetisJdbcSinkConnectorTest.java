@@ -40,7 +40,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.SinkTaskContext;
 
-import org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
 
 import org.junit.Test;
 
