@@ -38,6 +38,9 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.errors.ConnectException;
+import org.apache.kafka.connect.sink.SinkTaskContext;
+
+import org.mockito.Mockito.*;
 
 import org.junit.Test;
 
@@ -110,6 +113,9 @@ public class MetisJdbcSinkConnectorTest {
 
   @Test
   public void testDynamicTableRouting() {
+    // Mock the SinkTaskContext
+    SinkTaskContext mockContext = mock(SinkTaskContext.class);
+    
     MetisJdbcSinkConnector connector = new MetisJdbcSinkConnector();
     Map<String, String> connConfig = new HashMap<>();
     connConfig.put("connector.class", "io.confluent.connect.jdbc.MetisJdbcSinkConnector");
