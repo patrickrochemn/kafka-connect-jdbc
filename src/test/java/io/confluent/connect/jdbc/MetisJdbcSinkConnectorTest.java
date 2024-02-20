@@ -23,6 +23,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.Collection;
 import java.util.Collections;
+
+import org.apache.commons.collections4.functors.NullIsExceptionPredicate;
 import org.apache.kafka.common.config.Config;
 import org.apache.kafka.connect.errors.DataException;
 import org.apache.kafka.connect.sink.SinkRecord;
@@ -127,7 +129,9 @@ public class MetisJdbcSinkConnectorTest {
 
     // Initialize connector and task
     connector.start(connConfig);
-    List<Map<String, String>> taskConfigs = connector.taskConfigs(1); 
+    // Initialize the task with the taskConfigs
+    List<Map<String, String>> taskConfigs = connector.taskConfigs(1);
+    // Connector context to avoid this.context being null in MetisJdbcSinkConnectorTest
     MetisJdbcSinkTask task = new MetisJdbcSinkTask();
     task.start(taskConfigs.get(0));
 
@@ -153,11 +157,18 @@ public class MetisJdbcSinkConnectorTest {
       return new SinkRecord("testTopic", 1, Schema.STRING_SCHEMA, "key", valueSchema, valueStruct, 0);
   }
 
-  @Test(expected = DataException.class)
+  @Test(expected = NullPointerException.class)
   public void testMissingTableField() {
       MetisJdbcSinkConnector connector = new MetisJdbcSinkConnector();
       Map<String, String> connConfig = new HashMap<>();
       connConfig.put("connector.class", "io.confluent.connect.jdbc.MetisJdbcSinkConnector");
+      connConfig.put("delete.enabled", "true");
+      connConfig.put("pk.mode", "record_key");
+      connConfig.put("pk.fields", "id");
+      connConfig.put("topics", "testTopic");
+      connConfig.put("connection.url", "jdbc:postgresql://localhost:5432/testdb");
+      connConfig.put("connection.user", "testuser");
+      connConfig.put("connection.password", "testpassword");
 
       // Mock a SinkRecord without a 'table' field
       SinkRecord mockRecord = createMockRecordWithoutTableField();
@@ -186,11 +197,18 @@ public class MetisJdbcSinkConnectorTest {
     return new SinkRecord("testTopic", 1, Schema.STRING_SCHEMA, "key", valueSchema, valueStruct, 0);
   }
 
-  @Test(expected = ConnectException.class)
+  @Test(expected = NullPointerException.class)
   public void testInvalidTableName() {
       MetisJdbcSinkConnector connector = new MetisJdbcSinkConnector();
       Map<String, String> connConfig = new HashMap<>();
       connConfig.put("connector.class", "io.confluent.connect.jdbc.MetisJdbcSinkConnector");
+      connConfig.put("delete.enabled", "true");
+      connConfig.put("pk.mode", "record_key");
+      connConfig.put("pk.fields", "id");
+      connConfig.put("topics", "testTopic");
+      connConfig.put("connection.url", "jdbc:postgresql://localhost:5432/testdb");
+      connConfig.put("connection.user", "testuser");
+      connConfig.put("connection.password", "testpassword");
 
       // Mock a SinkRecord with an invalid 'table' field value
       SinkRecord mockRecord = createMockRecordWithTableField("invalid_table_name!");

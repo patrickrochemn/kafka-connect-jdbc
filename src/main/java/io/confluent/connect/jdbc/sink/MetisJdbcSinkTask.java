@@ -32,10 +32,10 @@ public class MetisJdbcSinkTask extends JdbcSinkTask {
         remainingRetries = config.maxRetries;
         shouldTrimSensitiveLogs = config.trimSensitiveLogsEnabled;
         try {
-        reporter = context.errantRecordReporter();
+         reporter = context.errantRecordReporter();
         } catch (NoSuchMethodError | NoClassDefFoundError e) {
-        // Will occur in Connect runtimes earlier than 2.6
-        reporter = null;
+            // Will occur in Connect runtimes earlier than 2.6
+            reporter = null;
         }
     }
 
