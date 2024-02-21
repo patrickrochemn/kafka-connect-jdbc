@@ -1,3 +1,8 @@
+# Vulnerabilities to patch
+org.postgresql_postgresql version 42.6.0
+com.fasterxml.jackson.core_jackson-databind
+From: COPY kafka-connect-jdbc-10.7.2-SNAPSHOT.jar /kafka_3.6.1/libs # buildkit
+
 # Kafka Connect JDBC Connector
 
 kafka-connect-jdbc is a [Kafka Connector](http://kafka.apache.org/documentation.html#connect)
