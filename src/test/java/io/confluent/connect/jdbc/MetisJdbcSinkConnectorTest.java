@@ -37,7 +37,6 @@ import static org.junit.Assert.*;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.SinkTaskContext;
 
 import static org.mockito.Mockito.mock;
@@ -135,10 +134,10 @@ public class MetisJdbcSinkConnectorTest {
 
     // Initialize connector and task
     connector.start(connConfig);
-    // Initialize the task with the taskConfigs
     List<Map<String, String>> taskConfigs = connector.taskConfigs(1);
     // Connector context to avoid this.context being null in MetisJdbcSinkConnectorTest
     MetisJdbcSinkTask task = new MetisJdbcSinkTask();
+    task.initialize(mockContext); // Initialize the task with the mocked context
     task.start(taskConfigs.get(0));
 
     // Invoke the "put" method with the mocked record
