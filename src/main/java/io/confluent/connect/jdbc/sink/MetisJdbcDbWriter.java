@@ -61,6 +61,7 @@ public class MetisJdbcDbWriter extends JdbcDbWriter{
     };
   }
 
+  // TODO: modify write method to exclude the 'table' field from each record
   void write(final Collection<SinkRecord> records)
       throws SQLException, TableAlterOrCreateException {
     final Connection connection = cachedConnectionProvider.getConnection();
