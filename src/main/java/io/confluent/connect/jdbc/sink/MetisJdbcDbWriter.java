@@ -17,6 +17,9 @@ package io.confluent.connect.jdbc.sink;
 
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.sink.SinkRecord;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -61,6 +64,47 @@ public class MetisJdbcDbWriter extends JdbcDbWriter{
     };
   }
 
+  private SinkRecord adjustRecord(SinkRecord originalRecord, String tableName) {
+    // Check if the record value is a Struct and contains the 'table' field
+    if (originalRecord.value() instanceof Struct && ((Struct) originalRecord.value()).schema().field("table") != null) {
+      Struct originalValue = (Struct) originalRecord.value();
+
+      // Create a new Schema Builder excluding the 'table' field.
+      SchemaBuilder builder = SchemaBuilder.struct();
+      for (Field field : originalValue.schema().fields()) {
+        if (!field.name().equals("table")) {
+          builder.field(field.name(), field.schema());
+        }
+      }
+
+      // Build the new schema
+      Schema newValueSchema = builder.build();
+
+      // Create a new Struct based on the new schema and copy the values over from the original
+      // struct, excluding the 'table' field
+      Struct newValue = new Struct(newValueSchema);
+      for (Field field : newValueSchema.fields()) {
+        newValue.put(field.name(), originalValue.get(field.name()));
+      }
+
+      // Create a new SinkRecord with the modified value (Struct without 'table')
+      return new SinkRecord(
+        originalRecord.topic(),
+        originalRecord.kafkaPartition(),
+        originalRecord.keySchema(),
+        originalRecord.key(),
+        newValueSchema,
+        newValue,
+        originalRecord.kafkaOffset(),
+        originalRecord.timestamp(),
+        originalRecord.timestampType()
+      );
+    } else {
+      // If the record value is not a Struct or doesn't contain the 'table' field, return the original record
+      return originalRecord;
+    }
+  }
+
   // TODO: modify write method to exclude the 'table' field from each record
   void write(final Collection<SinkRecord> records)
       throws SQLException, TableAlterOrCreateException {
@@ -68,16 +112,15 @@ public class MetisJdbcDbWriter extends JdbcDbWriter{
     try {
       final Map<String, BufferedRecords> bufferByTable = new HashMap<>();
       for (SinkRecord record : records) {
-        // Extract the table name from record
-        String tableName = extractTableName(record);
-        // buffer by tableName instead of tableId
-        BufferedRecords buffer = bufferByTable.get(tableName);
+        String tableName = extractTableName(record); // Extract the table name from record
+        SinkRecord adjustedRecord = adjustRecord(record, tableName); // Adjust record to exclude 'table' field
+        BufferedRecords buffer = bufferByTable.get(tableName); // buffer by tableName instead of tableId
         if (buffer == null) {
           TableId tableId = dbDialect.parseTableIdentifier(tableName);
           buffer = new BufferedRecords(config, tableId, dbDialect, dbStructure, connection);
           bufferByTable.put(tableName, buffer);
         }
-        buffer.add(record);
+        buffer.add(adjustedRecord);
       }
       for (BufferedRecords buffer : bufferByTable.values()) {
         buffer.flush();
