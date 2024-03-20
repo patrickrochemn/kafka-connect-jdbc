@@ -105,7 +105,6 @@ public class MetisJdbcDbWriter extends JdbcDbWriter{
     }
   }
 
-  // TODO: modify write method to exclude the 'table' field from each record
   void write(final Collection<SinkRecord> records)
       throws SQLException, TableAlterOrCreateException {
     final Connection connection = cachedConnectionProvider.getConnection();
@@ -128,9 +127,11 @@ public class MetisJdbcDbWriter extends JdbcDbWriter{
       }
       connection.commit();
     } catch (SQLException | TableAlterOrCreateException e) {
+      log.error("Write of records failed. In first level of catch block. Rolling back.", e);
       try {
         connection.rollback();
       } catch (SQLException sqle) {
+        log.error("Rollback of records failed. In second level of catch block. Ignoring.", sqle);
         e.addSuppressed(sqle);
       } finally {
         throw e;
