@@ -144,7 +144,7 @@ public class MetisJdbcDbWriter extends JdbcDbWriter{
     if (record.value() instanceof Struct) {
       Struct valueStruct = (Struct) record.value();
       // Log the extracted table name
-      log.info("Extracted table name: " + valueStruct.getString("table"));
+      // log.info("Extracted table name: " + valueStruct.getString("table"));
       return valueStruct.getString("table");
     } else {
       // if it isn't a Struct, throw an exception and say what the class is
