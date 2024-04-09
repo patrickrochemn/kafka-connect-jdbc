@@ -6,9 +6,17 @@ import org.apache.kafka.connect.errors.RetriableException;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
+import javax.xml.crypto.Data;
+
 import java.sql.SQLException;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +32,7 @@ public class MetisJdbcSinkTask extends JdbcSinkTask {
         logger.info("Starting Metis JDBC Sink task");
         config = new JdbcSinkConfig(props);
         initWriter();
+        initializePrimaryKeyCache(); // initialize the primary key cache for the db
         remainingRetries = config.maxRetries;
         shouldTrimSensitiveLogs = config.trimSensitiveLogsEnabled;
         try {
@@ -139,6 +148,36 @@ public class MetisJdbcSinkTask extends JdbcSinkTask {
         logger.info("Initializing Metis writer using SQL dialect: {}", dialect.getClass().getSimpleName());
         writer = new MetisJdbcDbWriter(config, dialect, dbStructure);
         logger.info("Metis JDBC writer initialized");
+    }
+
+    private Map<String, String> primaryKeyCache = new HashMap<>();
+
+    public void initializePrimaryKeyCache() {
+        logger.info("Initializing primary key cache");
+        // get the schema for the db and cache the primary keys
+        try (Connection conn = DriverManager.getConnection(config.connectionUrl, config.connectionUser, config.connectionPassword)) {
+            DatabaseMetaData metaData = conn.getMetaData();
+            String catalog = null; // or specific catalog if needed
+            String schemaPattern = "public"; // TODO: make this configurable
+
+            try (ResultSet tables = metaData.getTables(catalog, schemaPattern, null, new String[]{"TABLE"})) {
+                while (tables.next()) {
+                    String tableName = tables.getString("TABLE_NAME");
+                    try (ResultSet pkRs = metaData.getPrimaryKeys(catalog, schemaPattern, tableName)) {
+                        while (pkRs.next()) {
+                            String pkColumnName = pkRs.getString("COLUMN_NAME");
+                            primaryKeyCache.put(tableName, pkColumnName);
+                            logger.info("Cached primary key for table {}: {}", tableName, pkColumnName);
+                        }
+                    }
+                }
+            }
+
+        } catch (SQLException e) {
+            logger.error("Error initializing primary key cache", e);
+            throw new ConnectException("Error initializing primary key cache", e);
+        }
+        
     }
 
 }
