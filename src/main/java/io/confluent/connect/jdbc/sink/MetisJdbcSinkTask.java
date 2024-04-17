@@ -29,7 +29,7 @@ public class MetisJdbcSinkTask extends JdbcSinkTask {
 
     @Override
     public void start(final Map<String, String> props) {
-        logger.info("Starting Metis JDBC Sink task");
+        logger.info("METIS: Starting Metis JDBC Sink task");
         config = new JdbcSinkConfig(props);
         initWriter();
         initializePrimaryKeyCache(); // initialize the primary key cache for the db
@@ -51,7 +51,7 @@ public class MetisJdbcSinkTask extends JdbcSinkTask {
         final SinkRecord first = records.iterator().next();
         final int recordsCount = records.size();
         logger.debug(
-            "Received {} records. First record kafka coordinates:({}-{}-{}). Writing them to the "
+            "METIS: Received {} records. First record kafka coordinates:({}-{}-{}). Writing them to the "
             + "database...",
             recordsCount, first.topic(), first.kafkaPartition(), first.kafkaOffset()
         );
@@ -68,7 +68,7 @@ public class MetisJdbcSinkTask extends JdbcSinkTask {
         SQLException trimmedException = shouldTrimSensitiveLogs
                 ? LogUtil.trimSensitiveData(sqle) : sqle;
                 logger.warn(
-            "Write of {} records failed, remainingRetries={}",
+            "METIS: Write of {} records failed, remainingRetries={}",
             records.size(),
             remainingRetries,
             trimmedException
@@ -90,13 +90,13 @@ public class MetisJdbcSinkTask extends JdbcSinkTask {
             unrollAndRetry(records);
             } else {
                 logger.error(
-                "Failing task after exhausting retries; "
+                "METIS: Failing task after exhausting retries; "
                     + "encountered {} exceptions on last write attempt. "
                     + "For complete details on each exception, please enable DEBUG logging.",
                 totalExceptions);
             int exceptionCount = 1;
             for (Throwable e : trimmedException) {
-                logger.debug("Exception {}:", exceptionCount++, e);
+                logger.debug("METIS: Exception {}:", exceptionCount++, e);
             }
             throw new ConnectException(sqlAllMessagesException);
             }
@@ -125,7 +125,7 @@ public class MetisJdbcSinkTask extends JdbcSinkTask {
     }
 
     private SQLException getAllMessagesException(SQLException sqle) {
-        String sqleAllMessages = "Exception chain:" + System.lineSeparator();
+        String sqleAllMessages = "METIS: Exception chain:" + System.lineSeparator();
         SQLException trimmedException = shouldTrimSensitiveLogs
                 ? LogUtil.trimSensitiveData(sqle) : sqle;
         for (Throwable e : trimmedException) {
@@ -138,22 +138,22 @@ public class MetisJdbcSinkTask extends JdbcSinkTask {
 
     @Override
     void initWriter() {
-        logger.info("Initializing Metis JDBC writer");
+        logger.info("METIS: Initializing Metis JDBC writer");
         if (config.dialectName != null && !config.dialectName.trim().isEmpty()) {
         dialect = DatabaseDialects.create(config.dialectName, config);
         } else {
         dialect = DatabaseDialects.findBestFor(config.connectionUrl, config);
         }
         final DbStructure dbStructure = new DbStructure(dialect);
-        logger.info("Initializing Metis writer using SQL dialect: {}", dialect.getClass().getSimpleName());
+        logger.info("METIS: Initializing Metis writer using SQL dialect: {}", dialect.getClass().getSimpleName());
         writer = new MetisJdbcDbWriter(config, dialect, dbStructure);
-        logger.info("Metis JDBC writer initialized");
+        logger.info("METIS: Metis JDBC writer initialized");
     }
 
     private Map<String, String> primaryKeyCache = new HashMap<>();
 
     public void initializePrimaryKeyCache() {
-        logger.info("Initializing primary key cache");
+        logger.info("METIS: Initializing primary key cache");
         // get the schema for the db and cache the primary keys
         try (Connection conn = DriverManager.getConnection(config.connectionUrl, config.connectionUser, config.connectionPassword)) {
             DatabaseMetaData metaData = conn.getMetaData();
@@ -167,15 +167,18 @@ public class MetisJdbcSinkTask extends JdbcSinkTask {
                         while (pkRs.next()) {
                             String pkColumnName = pkRs.getString("COLUMN_NAME");
                             primaryKeyCache.put(tableName, pkColumnName);
-                            logger.info("Cached primary key for table {}: {}", tableName, pkColumnName);
+                            // logger.info("Cached primary key for table {}: {}", tableName, pkColumnName);
                         }
                     }
                 }
             }
 
+            // print out the cache in one log statement
+            logger.info("METIS: Primary key cache: {}", primaryKeyCache);
+
         } catch (SQLException e) {
-            logger.error("Error initializing primary key cache", e);
-            throw new ConnectException("Error initializing primary key cache", e);
+            logger.error("METIS: Error initializing primary key cache", e);
+            throw new ConnectException("METIS: Error initializing primary key cache", e);
         }
         
     }
