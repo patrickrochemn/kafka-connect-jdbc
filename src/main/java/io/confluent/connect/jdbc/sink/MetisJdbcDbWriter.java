@@ -106,7 +106,7 @@ public class MetisJdbcDbWriter extends JdbcDbWriter{
   }
 
   void write(final Collection<SinkRecord> records)
-      throws SQLException, TableAlterOrCreateException {
+    throws SQLException, TableAlterOrCreateException {
     final Connection connection = cachedConnectionProvider.getConnection();
     try {
       final Map<String, BufferedRecords> bufferByTable = new HashMap<>();
@@ -128,6 +128,7 @@ public class MetisJdbcDbWriter extends JdbcDbWriter{
       connection.commit();
     } catch (SQLException | TableAlterOrCreateException e) {
       log.error("Write of records failed. In first level of catch block. Rolling back.", e);
+      // TODO: verify if this is where we will put in custom ATC handling
       try {
         connection.rollback();
       } catch (SQLException sqle) {
