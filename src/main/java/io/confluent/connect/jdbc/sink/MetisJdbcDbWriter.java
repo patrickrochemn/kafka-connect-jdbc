@@ -40,13 +40,15 @@ public class MetisJdbcDbWriter extends JdbcDbWriter{
   private final JdbcSinkConfig config;
   private final DatabaseDialect dbDialect;
   private final DbStructure dbStructure;
+  private Map<String, String> primaryKeyCache = new HashMap<>();
   final CachedConnectionProvider cachedConnectionProvider;
 
-  public MetisJdbcDbWriter(final JdbcSinkConfig config, DatabaseDialect dbDialect, DbStructure dbStructure) {
+  public MetisJdbcDbWriter(final JdbcSinkConfig config, DatabaseDialect dbDialect, DbStructure dbStructure, Map<String, String> primaryKeyCache) {
     super(config, dbDialect, dbStructure);
     this.config = config;
     this.dbDialect = dbDialect;
     this.dbStructure = dbStructure;
+    this.primaryKeyCache = primaryKeyCache;
 
     this.cachedConnectionProvider = connectionProvider(
         config.connectionAttempts,
@@ -87,12 +89,19 @@ public class MetisJdbcDbWriter extends JdbcDbWriter{
         newValue.put(field.name(), originalValue.get(field.name()));
       }
 
+      // Retrieve primary key from cache
+      String primaryKey = primaryKeyCache.get(tableName);
+      Object newKey = null;
+      if (primaryKey != null) {
+        newKey = originalValue.get(primaryKey);
+      }
+
       // Create a new SinkRecord with the modified value (Struct without 'table')
       return new SinkRecord(
         originalRecord.topic(),
         originalRecord.kafkaPartition(),
         originalRecord.keySchema(),
-        originalRecord.key(),
+        newKey,
         newValueSchema,
         newValue,
         originalRecord.kafkaOffset(),
@@ -105,6 +114,7 @@ public class MetisJdbcDbWriter extends JdbcDbWriter{
     }
   }
 
+  @SuppressWarnings("finally")
   void write(final Collection<SinkRecord> records)
     throws SQLException, TableAlterOrCreateException {
     final Connection connection = cachedConnectionProvider.getConnection();
@@ -125,10 +135,10 @@ public class MetisJdbcDbWriter extends JdbcDbWriter{
         buffer.flush();
         buffer.close();
       }
+      // TODO: verify if this is where we will put in custom ATC handling
       connection.commit();
     } catch (SQLException | TableAlterOrCreateException e) {
       log.error("Write of records failed. In first level of catch block. Rolling back.", e);
-      // TODO: verify if this is where we will put in custom ATC handling
       try {
         connection.rollback();
       } catch (SQLException sqle) {

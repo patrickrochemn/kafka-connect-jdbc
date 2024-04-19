@@ -77,14 +77,16 @@ public class MetisJdbcDbWriterTest {
     final JdbcSinkConfig config = new JdbcSinkConfig(props);
     dialect = new SqliteDatabaseDialect(config);
     final DbStructure dbStructure = new DbStructure(dialect);
-    return new MetisJdbcDbWriter(config, dialect, dbStructure);
+    Map<String, String> primaryKeyCache = new HashMap<>();
+    return new MetisJdbcDbWriter(config, dialect, dbStructure, primaryKeyCache);
   }
 
   private MetisJdbcDbWriter newWriterWithMockConnection(Map<String, String> props, Connection mockConnection) {
     final JdbcSinkConfig config = new JdbcSinkConfig(props);
     dialect = mock(DatabaseDialect.class);
     final DbStructure dbStructure = mock(DbStructure.class);
-    return new MetisJdbcDbWriter(config, dialect, dbStructure) {
+    Map<String, String> primaryKeyCache = new HashMap<>();
+    return new MetisJdbcDbWriter(config, dialect, dbStructure, primaryKeyCache) {
       protected CachedConnectionProvider connectionProvider(int maxConnAttempts, long retryBackoff) {
         CachedConnectionProvider mockConnectionProvider = mock(CachedConnectionProvider.class);
         when(mockConnectionProvider.getConnection()).thenReturn(mockConnection);

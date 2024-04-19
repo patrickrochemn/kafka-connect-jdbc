@@ -31,8 +31,8 @@ public class MetisJdbcSinkTask extends JdbcSinkTask {
     public void start(final Map<String, String> props) {
         logger.info("METIS: Starting Metis JDBC Sink task");
         config = new JdbcSinkConfig(props);
-        initWriter();
         initializePrimaryKeyCache(); // initialize the primary key cache for the db
+        initWriter();
         remainingRetries = config.maxRetries;
         shouldTrimSensitiveLogs = config.trimSensitiveLogsEnabled;
         try {
@@ -146,11 +146,16 @@ public class MetisJdbcSinkTask extends JdbcSinkTask {
         }
         final DbStructure dbStructure = new DbStructure(dialect);
         logger.info("METIS: Initializing Metis writer using SQL dialect: {}", dialect.getClass().getSimpleName());
-        writer = new MetisJdbcDbWriter(config, dialect, dbStructure);
+        writer = new MetisJdbcDbWriter(config, dialect, dbStructure, primaryKeyCache);
         logger.info("METIS: Metis JDBC writer initialized");
     }
 
     private Map<String, String> primaryKeyCache = new HashMap<>();
+
+    // Getter for the primary key cache
+    public Map<String, String> getPrimaryKeyCache() {
+        return primaryKeyCache;
+    }
 
     public void initializePrimaryKeyCache() {
         logger.info("METIS: Initializing primary key cache");
@@ -180,7 +185,6 @@ public class MetisJdbcSinkTask extends JdbcSinkTask {
             logger.error("METIS: Error initializing primary key cache", e);
             throw new ConnectException("METIS: Error initializing primary key cache", e);
         }
-        
     }
 
 }
