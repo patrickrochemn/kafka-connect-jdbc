@@ -67,40 +67,37 @@ public class MetisJdbcDbWriter extends JdbcDbWriter{
   }
 
   private SinkRecord adjustRecord(SinkRecord originalRecord, String tableName) {
-    // Check if the record value is a Struct and contains the 'table' field
-    if (originalRecord.value() instanceof Struct && ((Struct) originalRecord.value()).schema().field("table") != null) {
+    if (originalRecord.value() instanceof Struct) {
       Struct originalValue = (Struct) originalRecord.value();
 
-      // Create a new Schema Builder excluding the 'table' field.
+      // Schema for the modified record value
       SchemaBuilder builder = SchemaBuilder.struct();
-      for (Field field : originalValue.schema().fields()) {
-        if (!field.name().equals("table")) {
+      for (Field field: originalValue.schema().fields()) {
+        if (!field.name().equals("table")) { // Excluding 'table' field
           builder.field(field.name(), field.schema());
         }
       }
-
-      // Build the new schema
       Schema newValueSchema = builder.build();
-
-      // Create a new Struct based on the new schema and copy the values over from the original
-      // struct, excluding the 'table' field
       Struct newValue = new Struct(newValueSchema);
       for (Field field : newValueSchema.fields()) {
         newValue.put(field.name(), originalValue.get(field.name()));
       }
 
-      // Retrieve primary key from cache
-      String primaryKey = primaryKeyCache.get(tableName);
-      Object newKey = null;
-      if (primaryKey != null) {
-        newKey = originalValue.get(primaryKey);
+      // Handling the primary key
+      String primaryKey = primaryKeyCache.getOrDefault(tableName, "Id"); // Defaulting to "Id"
+      Object newKey = originalValue.get(primaryKey);
+      if (newKey == null) {
+        log.warn("Primary key '{}' not found in record for table '{}'. Using original key", primaryKey, tableName);
+        newKey = originalRecord.key(); // Fallback to original key if PK not found
       }
 
-      // Create a new SinkRecord with the modified value (Struct without 'table')
+      // Logging for debugging
+      log.debug("Adjusting record for table '{}' with new key '{}' based on PK '{}'.", tableName, newKey, primaryKey);
+
       return new SinkRecord(
         originalRecord.topic(),
         originalRecord.kafkaPartition(),
-        originalRecord.keySchema(),
+        Schema.STRING_SCHEMA, // Assuming String schema for PK
         newKey,
         newValueSchema,
         newValue,
@@ -109,8 +106,8 @@ public class MetisJdbcDbWriter extends JdbcDbWriter{
         originalRecord.timestampType()
       );
     } else {
-      // If the record value is not a Struct or doesn't contain the 'table' field, return the original record
-      return originalRecord;
+      log.error("Record value is not a Struct or missing 'table' field, returning original record.");
+      return originalRecord; // Return original if not a Struct or no 'table' field
     }
   }
 
