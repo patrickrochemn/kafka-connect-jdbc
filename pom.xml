@@ -93,6 +93,14 @@
     </pluginRepositories>
 
     <dependencies>
+         <!-- ATC JDBC Dependencies -->
+         <dependency>
+            <groupId>com.atcorp.jdbc</groupId>
+            <artifactId>libatc-jdbc</artifactId>
+            <version>0.0.1</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/src/main/resources/libatc-jdbc-0.0.1.jar</systemPath>
+        </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
